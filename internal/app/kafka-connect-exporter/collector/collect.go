@@ -3,10 +3,11 @@ package collector
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/prometheus/client_golang/prometheus"
-	"github.com/prometheus/common/log"
 	"io/ioutil"
 	"strings"
+
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/sirupsen/logrus"
 )
 
 func (c *collector) Collect(ch chan<- prometheus.Metric) {
@@ -14,25 +15,25 @@ func (c *collector) Collect(ch chan<- prometheus.Metric) {
 
 	response, err := c.client.Get("/connectors")
 	if err != nil {
-		log.Errorf("Can't scrape kafka connect: %v", err)
+		logrus.Errorf("Can't scrape kafka connect: %v", err)
 		return
 	}
 	defer func() {
 		err = response.Body.Close()
 		if err != nil {
-			log.Errorf("Can't close connection to kafka connect: %v", err)
+			logrus.Errorf("Can't close connection to kafka connect: %v", err)
 		}
 	}()
 
 	output, err := ioutil.ReadAll(response.Body)
 	if err != nil {
-		log.Errorf("Can't scrape kafka connect: %v", err)
+		logrus.Errorf("Can't scrape kafka connect: %v", err)
 		return
 	}
 
 	var connectorsList connectors
 	if err := json.Unmarshal(output, &connectorsList); err != nil {
-		log.Errorf("Can't scrape kafka connect: %v", err)
+		logrus.Errorf("Can't scrape kafka connect: %v", err)
 		return
 	}
 
@@ -46,19 +47,19 @@ func (c *collector) Collect(ch chan<- prometheus.Metric) {
 
 		connectorStatusResponse, err := c.client.Get("/connectors/" + connector + "/status")
 		if err != nil {
-			log.Errorf("Can't get /status for: %v", err)
+			logrus.Errorf("Can't get /status for: %v", err)
 			continue
 		}
 
 		connectorStatusOutput, err := ioutil.ReadAll(connectorStatusResponse.Body)
 		if err != nil {
-			log.Errorf("Can't read Body for: %v", err)
+			logrus.Errorf("Can't read Body for: %v", err)
 			continue
 		}
 
 		var connectorStatus status
 		if err := json.Unmarshal(connectorStatusOutput, &connectorStatus); err != nil {
-			log.Errorf("Can't decode response for: %v", err)
+			logrus.Errorf("Can't decode response for: %v", err)
 			continue
 		}
 
@@ -94,7 +95,7 @@ func (c *collector) Collect(ch chan<- prometheus.Metric) {
 
 		err = connectorStatusResponse.Body.Close()
 		if err != nil {
-			log.Errorf("Can't close connection to connector: %v", err)
+			logrus.Errorf("Can't close connection to connector: %v", err)
 		}
 	}
 }

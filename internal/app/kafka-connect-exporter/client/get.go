@@ -1,14 +1,15 @@
 package client
 
 import (
-	"github.com/prometheus/common/log"
 	"net/http"
+
+	"github.com/sirupsen/logrus"
 )
 
 func (c *client) Get(path string) (*http.Response, error) {
 	req, err := http.NewRequest("GET", c.baseUrl+path, nil)
 	if err != nil {
-		log.Errorf("failed creating request: %v", err)
+		logrus.Errorf("failed creating request: %v", err)
 		return nil, err
 	}
 	if c.authCredentials != nil {

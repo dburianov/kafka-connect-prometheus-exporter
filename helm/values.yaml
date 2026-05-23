@@ -16,6 +16,13 @@ configuration:
     SCRAPE_URI: "http://changeme:8080"
     USERNAME: ""
     PASSWORD: ""
+    # TLS Configuration
+    TLS_ENABLED: "false"
+    TLS_SERVER_NAME: ""
+    TLS_CA_FILE: ""
+    TLS_CERT_FILE: ""
+    TLS_KEY_FILE: ""
+    TLS_INSECURE_SKIP_VERIFY: "false"
 
 imagePullSecrets: []
 nameOverride: ""
