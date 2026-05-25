@@ -33,7 +33,8 @@ jobs:
           goos: ${{ matrix.goos }}
           goarch: ${{ matrix.goarch }}
           ldflags: "-X 'main.BuildTime=${{ steps.date.outputs.date }}' -X 'main.BuildVersion=${{ github.ref_name }}'"
-          binary_name: "weather-exporter"
+          binary_name: "kafka-connect-exporter"
           extra_files: README.md LICENSE
           overwrite: true
           retry: 8
+          pre_command: export CGO_ENABLED=0
