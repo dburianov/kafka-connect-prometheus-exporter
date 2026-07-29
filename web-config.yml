@@ -1,0 +1,37 @@
+# Web configuration file for kafka-connect-prometheus-exporter
+#
+# This file configures TLS, authentication, and HTTP server settings.
+# For more information see: https://github.com/prometheus/exporter-toolkit/blob/master/docs/web-configuration.md
+
+# TLS configuration for the web server
+tls_server_config:
+  # Certificate and key files for server to use to authenticate to client.
+  cert_file: /etc/kubernetes/secrets/kafka-connect-exporter/tls.crt
+  key_file: /etc/kubernetes/secrets/kafka-connect-exporter/tls.key
+
+  # Minimum TLS version that is acceptable.
+  min_version: "TLS12"
+
+  # Maximum TLS version that is acceptable.
+  max_version: "TLS13"
+
+# HTTP server configuration
+http_server_config:
+  # Enable HTTP/2 support. Note that HTTP/2 is only supported with TLS.
+  http2: true
+
+  # List of headers that can be added to HTTP responses.
+  headers:
+    Content-Security-Policy: "default-src 'self'"
+    X-Frame-Options: "deny"
+    X-Content-Type-Options: "nosniff"
+
+# Basic authentication users (passwords are bcrypt hashed)
+basic_auth_users:
+  # Add your users here
+  # admin: $2y$10$X0h1gDsPszWURQaxFh.zoubFi6DXncSjhoQNJgRrnGs7EsimhC7zG
+
+# Rate limiting configuration (optional)
+rate_limit:
+  interval: "1s"
+  burst: 10

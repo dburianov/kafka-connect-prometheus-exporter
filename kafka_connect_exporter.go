@@ -3,11 +3,13 @@ package main
 import (
 	"flag"
 	"fmt"
+	"log/slog"
 	"net/http"
 	"os"
 
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
+	"github.com/prometheus/exporter-toolkit/web"
 	"github.com/sirupsen/logrus"
 	"github.com/vinted/kafka-connect-exporter/internal/app/kafka-connect-exporter/client"
 	"github.com/vinted/kafka-connect-exporter/internal/app/kafka-connect-exporter/collector"
@@ -21,7 +23,6 @@ const (
 
 var (
 	showVersion           = flag.Bool("version", false, "show version and exit")
-	listenAddress         = flag.String("listen-address", ":8080", "Address on which to expose metrics.")
 	metricsPath           = flag.String("telemetry-path", "/metrics", "Path under which to expose metrics.")
 	scrapeURI             = flag.String("scrape-uri", "http://127.0.0.1:8080", "URI on which to scrape kafka connect.")
 	user                  = flag.String("user", "", "Optional username for authenticating to kafka-connect")
@@ -32,6 +33,11 @@ var (
 	tlsCertFile           = flag.String("tls.cert-file", "", "The optional certificate file for Kafka client authentication")
 	tlsKeyFile            = flag.String("tls.key-file", "", "The optional key file for Kafka client authentication")
 	tlsInsecureSkipVerify = flag.Bool("tls.insecure-skip-tls-verify", false, "If true, the server's certificate will not be checked for validity")
+
+	// Web configuration flags
+	webConfigFile      = flag.String("web.config.file", "", "Path to configuration file that can enable TLS or authentication. See: https://github.com/prometheus/exporter-toolkit/blob/master/docs/web-configuration.md")
+	webListenAddresses = flag.String("web.listen-address", ":8080", "Addresses on which to expose metrics and web interface.")
+	webSystemdSocket   = flag.Bool("web.systemd-socket", false, "Use systemd socket activation listeners instead of port listeners (Linux only).")
 )
 
 func main() {
@@ -60,12 +66,31 @@ func main() {
 		}
 	}
 
-	prometheus.MustRegister(collector.NewCollector(*scrapeURI, nameSpace, *user, *pass, tlsConfig))
+	collector := collector.NewCollector(*scrapeURI, nameSpace, *user, *pass, tlsConfig)
+	prometheus.MustRegister(collector)
 
-	http.Handle(*metricsPath, promhttp.Handler())
-	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+	mux := http.NewServeMux()
+	mux.Handle(*metricsPath, promhttp.Handler())
+	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, *metricsPath, http.StatusMovedPermanently)
 	})
 
-	logrus.Fatal(http.ListenAndServe(*listenAddress, nil))
+	server := &http.Server{
+		Handler: mux,
+	}
+
+	// Convert logrus logger to slog
+	logger := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
+		Level: slog.LevelInfo,
+	}))
+
+	flags := &web.FlagConfig{
+		WebListenAddresses: &[]string{*webListenAddresses},
+		WebSystemdSocket:   webSystemdSocket,
+		WebConfigFile:      webConfigFile,
+	}
+
+	if err := web.ListenAndServe(server, flags, logger); err != nil {
+		logrus.Fatal(err)
+	}
 }
